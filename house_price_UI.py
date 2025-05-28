@@ -1,101 +1,56 @@
-import tkinter as tk
-from tkinter import ttk
+import streamlit as st
 import joblib
 
 # Load the trained model
 model = joblib.load("house_price_model.pkl")
 
-# Custom popup for prediction result
-def show_custom_popup(price):
-    popup = tk.Toplevel(root)
-    popup.title("Prediction Result")
-    popup.configure(bg="#D6EAF8")
-    popup.geometry("400x200")
-    popup.resizable(False, False)
+# Page Config
+st.set_page_config(page_title="🏡 House Price Predictor", layout="centered")
 
-    label = tk.Label(
-        popup,
-        text=f"🏷 Estimated Price:\n₹{price:,.2f}",
-        font=("Segoe UI", 18, "bold"),
-        bg="#D6EAF8",
-        fg="#154360",
-        pady=40
-    )
-    label.pack()
+st.title("🏡 House Price Predictor")
 
-    close_button = ttk.Button(popup, text="Close", command=popup.destroy)
-    close_button.pack(pady=10)
+st.markdown(
+    """
+    Enter the property details below to estimate the house price.
+    """
+)
 
-# Predict function
-def predict_price():
+# Input form
+with st.form("prediction_form"):
+    col1, col2 = st.columns(2)
+
+    with col1:
+        bedrooms = st.number_input("Bedrooms", min_value=0, step=1)
+        bathrooms = st.number_input("Bathrooms", min_value=0.0, step=0.25)
+        living_area = st.number_input("Living Area (sq ft)", min_value=0.0)
+        lot_area = st.number_input("Lot Area (sq ft)", min_value=0.0)
+        floors = st.number_input("Floors", min_value=0.0, step=0.5)
+        waterfront = st.selectbox("Waterfront (0/1)", [0, 1])
+        condition = st.slider("Condition (1–5)", 1, 5, 3)
+        grade = st.slider("Grade (1–13)", 1, 13, 7)
+
+    with col2:
+        area_excl_basement = st.number_input("Area excl. Basement", min_value=0.0)
+        area_basement = st.number_input("Basement Area", min_value=0.0)
+        built_year = st.number_input("Built Year", min_value=1800, max_value=2025, step=1)
+        renov_year = st.number_input("Renovation Year", min_value=0, max_value=2025, step=1)
+        living_area_renov = st.number_input("Living Area (Renov)", min_value=0.0)
+        lot_area_renov = st.number_input("Lot Area (Renov)", min_value=0.0)
+        schools_nearby = st.number_input("Schools Nearby", min_value=0, step=1)
+        distance_airport = st.number_input("Distance to Airport (km)", min_value=0.0)
+
+    submitted = st.form_submit_button("💰 Predict Price")
+
+if submitted:
     try:
         inputs = [
-            int(entry_bedrooms.get()), float(entry_bathrooms.get()),
-            float(entry_living_area.get()), float(entry_lot_area.get()),
-            float(entry_floors.get()), int(entry_waterfront.get()),
-            int(entry_condition.get()), int(entry_grade.get()),
-            float(entry_area_excl_basement.get()), float(entry_area_basement.get()),
-            int(entry_built_year.get()), int(entry_renov_year.get()),
-            float(entry_living_area_renov.get()), float(entry_lot_area_renov.get()),
-            int(entry_schools_nearby.get()), float(entry_distance_airport.get())
+            int(bedrooms), float(bathrooms), float(living_area), float(lot_area),
+            float(floors), int(waterfront), int(condition), int(grade),
+            float(area_excl_basement), float(area_basement), int(built_year),
+            int(renov_year), float(living_area_renov), float(lot_area_renov),
+            int(schools_nearby), float(distance_airport)
         ]
         price = model.predict([inputs])[0]
-        show_custom_popup(price)
+        st.success(f"🏷 Estimated Price: ₹{price:,.2f}")
     except Exception as e:
-        show_custom_popup(f"Error!\n{str(e)}")
-
-# Main window
-root = tk.Tk()
-root.title("🏡 House Price Predictor")
-root.geometry("620x750")
-root.configure(bg="#D6EAF8")  # Light blue background
-
-style = ttk.Style()
-style.theme_use("clam")
-style.configure("TLabel", background="#D6EAF8", font=("Segoe UI", 11))
-style.configure("TEntry", font=("Segoe UI", 11))
-style.configure("TButton", font=("Segoe UI", 11, "bold"))
-
-# Title
-tk.Label(
-    root,
-    text="House Price Predictor",
-    font=("Segoe UI", 18, "bold"),
-    bg="#D6EAF8",
-    fg="#1A5276"
-).pack(pady=20)
-
-# Form frame
-frame = tk.Frame(root, bg="#D6EAF8")
-frame.pack()
-
-labels = [
-    "Bedrooms", "Bathrooms", "Living Area (sq ft)", "Lot Area (sq ft)",
-    "Floors", "Waterfront (0/1)", "Condition (1–5)", "Grade (1–13)",
-    "Area excl. Basement", "Basement Area", "Built Year", "Renovation Year",
-    "Living Area (Renov)", "Lot Area (Renov)", "Schools Nearby", "Distance to Airport"
-]
-
-entries = []
-for i, text in enumerate(labels):
-    ttk.Label(frame, text=text).grid(row=i, column=0, sticky="e", padx=15, pady=6)
-    entry = ttk.Entry(frame, width=30)
-    entry.grid(row=i, column=1, padx=15, pady=6)
-    entries.append(entry)
-
-(
-    entry_bedrooms, entry_bathrooms, entry_living_area, entry_lot_area,
-    entry_floors, entry_waterfront, entry_condition, entry_grade,
-    entry_area_excl_basement, entry_area_basement, entry_built_year,
-    entry_renov_year, entry_living_area_renov, entry_lot_area_renov,
-    entry_schools_nearby, entry_distance_airport
-) = entries
-
-# Predict Button
-ttk.Button(
-    root,
-    text="💰 Predict Price",
-    command=predict_price
-).pack(pady=30)
-
-root.mainloop()
+        st.error(f"Prediction Error: {e}")
